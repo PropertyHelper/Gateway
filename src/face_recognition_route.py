@@ -62,7 +62,6 @@ def handle_face_recognition(file: UploadFile = File(...)) -> RecognitionResult: 
     if user_details.status_code != 200:
         print("3.1", user_details.status_code, user_details.text)
     if user_details.status_code == 404:
-        print(f"Very weird, investigate uid {recognition_result['uid']}. Supposed to find, but not found")
-        raise HTTPException(status_code=500, detail="User recognised, but data was not found.")
+        return RecognitionResult(assummed_new=True, uid=recognition_result["uid"])
     jsonned_user_details = user_details.json()
     return RecognitionResult(assummed_new=False, uid=recognition_result["uid"], user=User.model_validate(jsonned_user_details))
