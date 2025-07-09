@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+
+# Environment
+.env
+.*.env
+.venv
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+.envrc
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# AWS
+.aws-sam/
+samconfig.toml
+.chalice/
+cdk.out/
+.terraform/
+.terraform.*
+*.tfstate
+*.tfstate.*
+*.tfvars
+.serverless/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Project specific
+*.log
+logs/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Local development configs
+config.local.yaml
+*.local.yml

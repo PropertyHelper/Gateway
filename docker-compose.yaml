@@ -1,0 +1,8 @@
+services:
+  user_service:
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
