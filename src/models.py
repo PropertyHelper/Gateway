@@ -16,6 +16,7 @@ class UserCreate(BaseModel):
     uid: uuid.UUID | None = None
     first_name: str
     last_name: str
+    user_name: str
     email: EmailStr
     date_of_birth: PastDate
     gender: str
@@ -33,11 +34,16 @@ class User(BaseModel):
     uid: uuid.UUID
     first_name: str
     last_name: str
+    user_name: str
     email: EmailStr
     date_of_birth: PastDate
     gender: str
     nationality: str
 
+class UserPublicProfile(BaseModel):
+    uid: uuid.UUID
+    first_name: str
+    user_name: str
 
 class UserLogInRequest(BaseModel):
     """
@@ -55,6 +61,6 @@ class LogInSuccessful(BaseModel):
     token: str
 
 class RecognitionResult(BaseModel):
-    user: User | None = None
+    user: UserPublicProfile | None = None
     uid: uuid.UUID
     assummed_new: bool

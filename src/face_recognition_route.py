@@ -2,7 +2,7 @@ import requests
 from requests.exceptions import ConnectionError
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
-from src.models import RecognitionResult, User
+from src.models import RecognitionResult, UserPublicProfile
 from src.settings import settings
 
 router = APIRouter(prefix="/recognise")
@@ -64,4 +64,4 @@ def handle_face_recognition(file: UploadFile = File(...)) -> RecognitionResult: 
     if user_details.status_code == 404:
         return RecognitionResult(assummed_new=True, uid=recognition_result["uid"])
     jsonned_user_details = user_details.json()
-    return RecognitionResult(assummed_new=False, uid=recognition_result["uid"], user=User.model_validate(jsonned_user_details))
+    return RecognitionResult(assummed_new=False, uid=recognition_result["uid"], user=UserPublicProfile.model_validate(jsonned_user_details))
