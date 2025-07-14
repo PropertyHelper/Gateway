@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, HTTPException, Depends
 import requests
 
-from src.models import UserLogInRequest, User, LogInSuccessful, UserCreate
+from src.models import UserLogInRequest, User, LogInSuccessful, UserCreate, TransactionResponse
 from src.settings import settings
 from src.security import issue_token, AccessLevel, ValidateHeader
 
@@ -34,6 +34,20 @@ def get_user(token: dict = Depends(ValidateHeader(user_access_level, settings.se
     except (TimeoutError, ConnectionError) as e:
         print("get user timeout", e)
         raise HTTPException(status_code=550, detail="User service unavailable")
+    return response.json()
+
+@router.get("/transactions")
+def get_user_transactions(offset: int = 0,
+                           limit: int = 100,
+                          token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> TransactionResponse:
+    uid = token["entity_id"]
+    try:
+        response = requests.get(settings.transaction_endpoint.unicode_string() + f"/userdata/transactions/{uid}",
+                                params={"offset": offset, "limit": limit},
+                                timeout=10)
+    except (TimeoutError, ConnectionError) as e:
+        print("get user transaction timeout", e)
+        raise HTTPException(status_code=550, detail="Transaction service unavailable")
     return response.json()
 
 @router.post("/")

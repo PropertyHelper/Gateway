@@ -7,5 +7,6 @@ class Settings(BaseSettings):
     user_endpoint: HttpUrl
     face_recognition_endpoint: HttpUrl
     shop_endpoint: HttpUrl
+    transaction_endpoint: HttpUrl
 
 settings = Settings()
