@@ -3,7 +3,8 @@ import json
 from fastapi import APIRouter, HTTPException, Depends
 import requests
 
-from src.models import UserLogInRequest, User, LogInSuccessful, UserCreate, TransactionResponse
+from src.models import UserLogInRequest, User, LogInSuccessful, UserCreate, TransactionResponse, FrontendUserBalances, \
+    UserBalances, FrontendTransactionResponse, FrontendTransaction, Transaction, ShopNames
 from src.settings import settings
 from src.security import issue_token, AccessLevel, ValidateHeader
 
@@ -39,7 +40,7 @@ def get_user(token: dict = Depends(ValidateHeader(user_access_level, settings.se
 @router.get("/transactions")
 def get_user_transactions(offset: int = 0,
                            limit: int = 100,
-                          token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> TransactionResponse:
+                          token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> FrontendTransactionResponse:
     uid = token["entity_id"]
     try:
         response = requests.get(settings.transaction_endpoint.unicode_string() + f"/userdata/transactions/{uid}",
@@ -48,7 +49,41 @@ def get_user_transactions(offset: int = 0,
     except (TimeoutError, ConnectionError) as e:
         print("get user transaction timeout", e)
         raise HTTPException(status_code=550, detail="Transaction service unavailable")
-    return response.json()
+    transactions = TransactionResponse.model_validate(response.json())
+    try:
+        shop_names_response = requests.post(settings.shop_endpoint.unicode_string() + f"/shop/names",
+                                json=[str(transaction.shop_id) for transaction in transactions.transactions],
+                                timeout=10)
+    except (TimeoutError, ConnectionError) as e:
+        print("get shop transaction timeout", e)
+        raise HTTPException(status_code=550, detail="Shop service unavailable")
+    shop_names = ShopNames.model_validate(shop_names_response.json())
+    return FrontendTransactionResponse(transactions=[FrontendTransaction(**transaction.model_dump(),
+                                                                         shop_name=shop_name) for transaction, shop_name in
+                                                     zip(transactions.transactions, shop_names.names)])
+
+@router.get("/balance")
+def get_user_balance(token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> FrontendUserBalances:
+    uid = token["entity_id"]
+    try:
+        response = requests.get(settings.transaction_endpoint.unicode_string() + f"/userdata/{uid}",
+                                timeout=10)
+    except (TimeoutError, ConnectionError) as e:
+        print("get user transaction timeout", e)
+        raise HTTPException(status_code=550, detail="Transaction service unavailable")
+    user_balances = UserBalances.model_validate(response.json())
+    sids = [str(record[0]) for record in user_balances.shops]
+    balances = [record[1] for record in user_balances.shops]
+    try:
+        shop_names_response = requests.post(settings.shop_endpoint.unicode_string() + f"/shop/names",
+                                json=sids,
+                                timeout=10)
+    except (TimeoutError, ConnectionError) as e:
+        print("get shop transaction timeout", e)
+        raise HTTPException(status_code=550, detail="Shop service unavailable")
+    shop_names = ShopNames.model_validate(shop_names_response.json())
+    front_user_balance = FrontendUserBalances(user_id=uid, shops=list(zip(shop_names.names, balances)))
+    return front_user_balance
 
 @router.post("/")
 def create_user(user_create: UserCreate):

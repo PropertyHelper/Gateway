@@ -90,6 +90,14 @@ class TransactionCreate(BaseModel):
     shop_id: uuid.UUID
     items: list[ItemCreate]
 
+class UserBalances(BaseModel):
+    user_id: uuid.UUID
+    shops: list[tuple[uuid.UUID, int]]
+
+class FrontendUserBalances(BaseModel):
+    user_id: uuid.UUID
+    shops: list[tuple[str, int]]
+
 class Transaction(TransactionCreate):
     tid: uuid.UUID
     total_cost: int
@@ -97,5 +105,14 @@ class Transaction(TransactionCreate):
     performed_at: datetime.datetime
     items: list[Item]
 
+class FrontendTransaction(Transaction):
+    shop_name: str
+
 class TransactionResponse(BaseModel):
     transactions: list[Transaction]
+
+class FrontendTransactionResponse(BaseModel):
+    transactions: list[FrontendTransaction]
+
+class ShopNames(BaseModel):
+    names: list[str]
