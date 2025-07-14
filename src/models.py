@@ -64,3 +64,13 @@ class RecognitionResult(BaseModel):
     user: UserPublicProfile | None = None
     uid: uuid.UUID
     assummed_new: bool
+
+class Cashier(BaseModel):
+    cid: uuid.UUID
+    account_name: str
+    shop_id: uuid.UUID
+
+class CashierLoginRequest(BaseModel):
+    shop_nickname: str
+    account_name: str
+    password: str
