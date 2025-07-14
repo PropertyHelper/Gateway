@@ -11,8 +11,7 @@ def build_app() -> FastAPI:
     app.include_router(face_recognition_router, tags=["Cashier"])
     app.include_router(cashier_router, tags=["Cashier"])
     app.add_middleware(CORSMiddleware,
-                       allow_origins=["http://localhost:5173", "http://localhost:5174"],
-                       allow_credentials=True,
+                       allow_origins=["*"],
                        allow_methods=["*"],
                        allow_headers=["*"],
                        )
