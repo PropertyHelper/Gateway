@@ -15,7 +15,7 @@ class AccessLevel(enum.Enum):
 
 
 def issue_token(
-    entity_id: str, access_level: AccessLevel, secret: str
+    entity_id: str, access_level: AccessLevel, secret: str, **kwargs
 ) -> str:
     """
     Generate a token signed by secret.
@@ -26,7 +26,7 @@ def issue_token(
     :return: str
     """
     return jwt.encode(
-        {"entity_id": entity_id, "access_level": access_level.value},
+        {"entity_id": entity_id, "access_level": access_level.value, **kwargs},
         secret,
         algorithm="HS256",
     )

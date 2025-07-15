@@ -1,7 +1,7 @@
 import uuid
 import datetime
 
-from pydantic import BaseModel, EmailStr, PastDate
+from pydantic import BaseModel, EmailStr, PastDate, Field
 
 
 class UserCreate(BaseModel):
@@ -116,3 +116,30 @@ class FrontendTransactionResponse(BaseModel):
 
 class ShopNames(BaseModel):
     names: list[str]
+
+class ItemCreateIventory(BaseModel):
+    name: str
+    description: str
+    photo_url: str | None = None
+    price: int = Field(gt=0)
+    percent_point_allocation: int = Field(ge=0)
+    shop_id: uuid.UUID
+
+class ItemInventory(ItemCreateIventory):
+    iid: uuid.UUID
+
+class ShopInventoryItems(BaseModel):
+    items: list[ItemInventory]
+    total: int
+
+class RenameUIDRequest(BaseModel):
+    old_uid: uuid.UUID
+    new_uid: uuid.UUID
+
+class RenameResult(BaseModel):
+    new_uid: uuid.UUID
+
+class ConfusionUIRequest(BaseModel):
+    recognised_uid: uuid.UUID
+    found_uid: uuid.UUID
+    timestamp: int
