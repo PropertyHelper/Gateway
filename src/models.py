@@ -143,3 +143,10 @@ class ConfusionUIRequest(BaseModel):
     recognised_uid: uuid.UUID
     found_uid: uuid.UUID
     timestamp: int
+
+class SelectedItems(BaseModel):
+    item_id_list: list[uuid.UUID]
+
+class TransactionCreateFromFrontend(BaseModel):
+    user_id: uuid.UUID
+    item_id_quantity: list[tuple[uuid.UUID, int]]

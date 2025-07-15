@@ -4,10 +4,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from src.security import issue_token, AccessLevel, ValidateHeader
 from src.settings import settings
 from src.models import CashierLoginRequest, Cashier, LogInSuccessful, ShopInventoryItems, UserPublicProfile, \
-    RenameUIDRequest, RenameResult, ConfusionUIRequest
+    RenameUIDRequest, RenameResult, ConfusionUIRequest, SelectedItems, TransactionCreateFromFrontend, Transaction
 
 router = APIRouter(prefix="/cashier")
 cashier_access_level = AccessLevel("Cashier_Level")
+
 
 @router.post("/login")
 def login_cashier(login_request: CashierLoginRequest):
@@ -26,6 +27,7 @@ def login_cashier(login_request: CashierLoginRequest):
                                                             secret=settings.secret,
                                                             shop_id=str(cashier.shop_id)))
 
+
 @router.get("/inventory")
 def get_inventory(token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> ShopInventoryItems:
     shop_id = token.get("shop_id")
@@ -33,14 +35,16 @@ def get_inventory(token: dict = Depends(ValidateHeader(cashier_access_level, set
         raise HTTPException(status_code=401, detail="No shop_id included in token")
     try:
         response = requests.get(settings.shop_endpoint.unicode_string() + f"/shop/{shop_id}/items",
-                                 timeout=10)
+                                timeout=10)
     except TimeoutError as e:
         print("login timeout", e)
         raise HTTPException(status_code=550, detail="Shop service unavailable")
     return response.json()
 
+
 @router.get("/get_user_by_user_name/{user_name}")
-def get_user_by_user_name(user_name: str, token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> UserPublicProfile:
+def get_user_by_user_name(user_name: str, token: dict = Depends(
+    ValidateHeader(cashier_access_level, settings.secret))) -> UserPublicProfile:
     print(f'Cashier {token["entity_id"]} requested data about {user_name}')
     try:
         user_details = requests.get(settings.user_endpoint.encoded_string() + f"/user/by_user_name/{user_name}",
@@ -56,6 +60,7 @@ def get_user_by_user_name(user_name: str, token: dict = Depends(ValidateHeader(c
     jsonned_user_details = user_details.json()
     return UserPublicProfile.model_validate(jsonned_user_details)
 
+
 @router.post("/merge_users")
 def merge_users(rename_request: RenameUIDRequest,
                 token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> RenameResult:
@@ -70,9 +75,48 @@ def merge_users(rename_request: RenameUIDRequest,
         raise HTTPException(status_code=550, detail="Face recognition service not available")
     return result_id_update.json()
 
+
 @router.post("/confused_users")
 def note_user_confusion(confusion_request: ConfusionUIRequest,
-                token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> dict:
+                        token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> dict:
     print(f'Cashier {token["entity_id"]} reported confusion of recognised {confusion_request.recognised_uid} to '
           f'actual {confusion_request.found_uid}')
     return {}
+
+
+@router.post("/get_items_details")
+def get_items_details(selected_items: SelectedItems,
+                      token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> ShopInventoryItems:
+    shop_id = token.get("shop_id")
+    if not shop_id:
+        raise HTTPException(status_code=401, detail="No shop_id included in token")
+    try:
+        response = requests.post(settings.shop_endpoint.unicode_string() + f"/items/get",
+                                 json={"item_id_list": [str(iid) for iid in selected_items.item_id_list]},
+                                 timeout=10)
+    except TimeoutError as e:
+        print("login timeout", e)
+        raise HTTPException(status_code=550, detail="Shop service unavailable")
+    jsonned = response.json()
+    return ShopInventoryItems(items=jsonned, total=len(jsonned))
+
+
+@router.post("/record_transaction")
+def record_transaction(transaction_create: TransactionCreateFromFrontend,
+                       token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> Transaction:
+    iids = [record[0] for record in transaction_create.item_id_quantity]
+    item_details = get_items_details(SelectedItems(item_id_list=iids), token)
+    shop_id = token.get("shop_id")
+    data = {
+        "shop_id": str(shop_id),
+        "user_id": str(transaction_create.user_id),
+        "items": [{"item_id": str(item.iid), "quantity": id_quantity[1], "unit_cost": item.price, "point_allocation_percentage": item.percent_point_allocation} for item, id_quantity in zip(item_details.items, transaction_create.item_id_quantity)]
+    }
+    try:
+        response = requests.post(settings.transaction_endpoint.unicode_string() + f"/userdata/transaction",
+                                 json=data,
+                                 timeout=10)
+    except TimeoutError as e:
+        print("record_transaction timeout", e)
+        raise HTTPException(status_code=550, detail="Transaction service unavailable")
+    return response.json()
