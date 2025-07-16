@@ -5,6 +5,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from src.user_service_route import router as user_router
 from src.face_recognition_route import  router as face_recognition_router
 from src.cashier_router import router as cashier_router
+from src.shop_router import router as shop_router
 
 
 def build_app() -> FastAPI:
@@ -12,6 +13,7 @@ def build_app() -> FastAPI:
     app.include_router(user_router, tags=["User"])
     app.include_router(face_recognition_router, tags=["Cashier"])
     app.include_router(cashier_router, tags=["Cashier"])
+    app.include_router(shop_router, tags=["Shop"])
     app.add_middleware(CORSMiddleware,
                        allow_origins=["*"],
                        allow_methods=["*"],

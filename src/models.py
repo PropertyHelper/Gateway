@@ -150,3 +150,30 @@ class SelectedItems(BaseModel):
 class TransactionCreateFromFrontend(BaseModel):
     user_id: uuid.UUID
     item_id_quantity: list[tuple[uuid.UUID, int]]
+
+class ShopLogInRequest(BaseModel):
+    nickname: str
+    password: str
+
+class Shop(BaseModel):
+    sid: uuid.UUID
+    nickname: str
+
+class ShopUsers(BaseModel):
+    shop_id: uuid.UUID
+    users: list[uuid.UUID]
+
+class AnalyticalView(BaseModel):
+    """
+    Data transfer object for user analytics reports.
+
+    Contains aggregated user statistics including gender and nationality
+    distributions, along with total valid user count for the analysis.
+    """
+    gender_groupby: list[tuple[str, int]]
+    nationality_groupby: list[tuple[str, int]]
+    valid_users: int
+
+class CashierCreate(BaseModel):
+    account_name: str
+    password: str
