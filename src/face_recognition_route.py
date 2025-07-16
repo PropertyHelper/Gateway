@@ -2,6 +2,7 @@ import requests
 from requests.exceptions import ConnectionError
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
+from src.db_ops import record_recognition_event
 from src.metrics import total_face_recognitions
 from src.models import RecognitionResult, UserPublicProfile
 from src.settings import settings
@@ -30,6 +31,7 @@ def handle_face_recognition(file: UploadFile = File(...)) -> RecognitionResult: 
         print("handle_face_recognition 1", e)
         raise HTTPException(status_code=550, detail="Face recognition service not available")
     total_face_recognitions.inc()
+    record_recognition_event("recognition")
     print("after initial recognition request", result.status_code, result.text)
     recognition_result = result.json()
     if recognition_result["new"]:

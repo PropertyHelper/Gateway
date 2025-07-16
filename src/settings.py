@@ -8,5 +8,6 @@ class Settings(BaseSettings):
     face_recognition_endpoint: HttpUrl
     shop_endpoint: HttpUrl
     transaction_endpoint: HttpUrl
+    db_connection_string: str
 
 settings = Settings()

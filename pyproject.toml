@@ -18,6 +18,8 @@ prometheus-fastapi-instrumentator = "^7.1.0"
 prometheus-client = "^0.22.1"
 pandas = "^2.3.1"
 openpyxl = "^3.1.5"
+sqlalchemy = "^2.0.41"
+psycopg2-binary = "^2.9.10"
 
 
 [build-system]

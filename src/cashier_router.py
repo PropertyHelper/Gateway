@@ -1,6 +1,7 @@
 import requests
 from fastapi import APIRouter, HTTPException, Depends
 
+from src.db_ops import record_recognition_event
 from src.metrics import total_merged_recognitions, total_confused_recognitions
 from src.security import issue_token, AccessLevel, ValidateHeader
 from src.settings import settings
@@ -75,6 +76,7 @@ def merge_users(rename_request: RenameUIDRequest,
         print("merge_users", e)
         raise HTTPException(status_code=550, detail="Face recognition service not available")
     total_merged_recognitions.inc()
+    record_recognition_event("merge")
     return result_id_update.json()
 
 
@@ -84,6 +86,7 @@ def note_user_confusion(confusion_request: ConfusionUIRequest,
     print(f'Cashier {token["entity_id"]} reported confusion of recognised {confusion_request.recognised_uid} to '
           f'actual {confusion_request.found_uid}')
     total_confused_recognitions.inc()
+    record_recognition_event("confusion")
     return {}
 
 

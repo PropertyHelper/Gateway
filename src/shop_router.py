@@ -73,7 +73,7 @@ def create_cashier(potential_cashier: CashierCreate, token: dict = Depends(Valid
     return response.json()
 
 @router.post("/add_inventory")
-async def recognise_or_create(file: UploadFile = File(...),
+async def add_inventory(file: UploadFile = File(...),
                               token: dict = Depends(ValidateHeader(shop_access_level, settings.secret))) -> list[ItemInventory]:
     if file.filename is None:
         raise HTTPException(400, "Invalid file")

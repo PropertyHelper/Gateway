@@ -6,3 +6,13 @@ services:
       - "8002:8002"
     env_file:
       - .env
+  gateway_db:
+    image: postgres
+    env_file:
+      - .postgres.env
+    ports:
+      - "5435:5432"
+    volumes:
+      - gateway_postgres:/var/lib/postgresql/data
+volumes:
+  gateway_postgres:
