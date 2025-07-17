@@ -26,7 +26,7 @@ def handle_face_recognition(file: UploadFile = File(...)) -> RecognitionResult: 
     try:
         result = requests.post(settings.face_recognition_endpoint.encoded_string() + "/frontend/recognise",
                                files={"file": file_to_send},
-                               timeout=10)
+                               timeout=60)
     except (ConnectionError, TimeoutError) as e:
         print("handle_face_recognition 1", e)
         raise HTTPException(status_code=550, detail="Face recognition service not available")

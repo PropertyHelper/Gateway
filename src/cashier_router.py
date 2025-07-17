@@ -9,11 +9,20 @@ from src.models import CashierLoginRequest, Cashier, LogInSuccessful, ShopInvent
     RenameUIDRequest, RenameResult, ConfusionUIRequest, SelectedItems, TransactionCreateFromFrontend, Transaction
 
 router = APIRouter(prefix="/cashier")
-cashier_access_level = AccessLevel("Cashier_Level")
+cashier_access_level = AccessLevel("Cashier_Level")  # cashier level access
 
 
 @router.post("/login")
-def login_cashier(login_request: CashierLoginRequest):
+def login_cashier(login_request: CashierLoginRequest) -> LogInSuccessful:
+    """
+    Authenticate a cashier and issue a token.
+
+    :param login_request: credentials
+    :return: LogInSuccessful object
+
+    :raise HTTPException with 550 code if cashier service times out
+    :raise HTTPException with 403 code if the credentials are wrong
+    """
     try:
         response = requests.post(settings.shop_endpoint.unicode_string() + "/cashier/login",
                                  json=login_request.model_dump(),
@@ -32,6 +41,14 @@ def login_cashier(login_request: CashierLoginRequest):
 
 @router.get("/inventory")
 def get_inventory(token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> ShopInventoryItems:
+    """
+    Get inventory available in the shop to display in cashier system.
+
+    :param token: dict from the DI system with data from jwt token.
+    :return: ShopInventoryItems object
+    :raise HTTPException with status code 401 if the shop id is not included in jwt (should not happen)
+    :raise HTTPException with status code 500 if the external service timed out.
+    """
     shop_id = token.get("shop_id")
     if not shop_id:
         raise HTTPException(status_code=401, detail="No shop_id included in token")
@@ -47,6 +64,14 @@ def get_inventory(token: dict = Depends(ValidateHeader(cashier_access_level, set
 @router.get("/get_user_by_user_name/{user_name}")
 def get_user_by_user_name(user_name: str, token: dict = Depends(
     ValidateHeader(cashier_access_level, settings.secret))) -> UserPublicProfile:
+    """
+    Fetch a user by username.
+
+    Endpoint logs this cashier's action to ensure cashier does not abuse the system.
+    :param user_name: unique user name within the system
+    :param token: dict from the DI system with data from jwt token.
+    :return: UserPublicProfile object that does not contain sensitive data
+    """
     print(f'Cashier {token["entity_id"]} requested data about {user_name}')
     try:
         user_details = requests.get(settings.user_endpoint.encoded_string() + f"/user/by_user_name/{user_name}",
@@ -66,6 +91,16 @@ def get_user_by_user_name(user_name: str, token: dict = Depends(
 @router.post("/merge_users")
 def merge_users(rename_request: RenameUIDRequest,
                 token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> RenameResult:
+    """
+    Merge a new user with existing one.
+
+    Use in case of confusion between new and existing user.
+    Cashier action is logged
+    :param rename_request: RenameUIDRequest object
+    :param token: dict from the DI system with data from jwt token.
+    :return: RenameResult
+    :raise HTTPException with code 550 if the external service times out
+    """
     print(f'Cashier {token["entity_id"]} requested data rename of {rename_request.old_uid} to {rename_request.new_uid}')
     try:
         result_id_update = requests.post(settings.face_recognition_endpoint.encoded_string() + "/frontend/merge",
@@ -83,6 +118,13 @@ def merge_users(rename_request: RenameUIDRequest,
 @router.post("/confused_users")
 def note_user_confusion(confusion_request: ConfusionUIRequest,
                         token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> dict:
+    """
+    Log the system's confusion on 2 existing users. Record it to prometheus and the database.
+
+    :param confusion_request: ConfusionUIRequest object
+    :param token: dict from the DI system with data from jwt token.
+    :return: empty dict - as the endpoint is for further analysis of ML engineers
+    """
     print(f'Cashier {token["entity_id"]} reported confusion of recognised {confusion_request.recognised_uid} to '
           f'actual {confusion_request.found_uid}')
     total_confused_recognitions.inc()
@@ -93,6 +135,13 @@ def note_user_confusion(confusion_request: ConfusionUIRequest,
 @router.post("/get_items_details")
 def get_items_details(selected_items: SelectedItems,
                       token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> ShopInventoryItems:
+    """
+    Get data on items based on their ids.
+
+    :param selected_items: list of item ids
+    :param token: dict from the DI system with data from jwt token.
+    :return: list of item objects from the shop service
+    """
     shop_id = token.get("shop_id")
     if not shop_id:
         raise HTTPException(status_code=401, detail="No shop_id included in token")
@@ -110,6 +159,13 @@ def get_items_details(selected_items: SelectedItems,
 @router.post("/record_transaction")
 def record_transaction(transaction_create: TransactionCreateFromFrontend,
                        token: dict = Depends(ValidateHeader(cashier_access_level, settings.secret))) -> Transaction:
+    """
+    Record a transaction into the system
+
+    :param transaction_create: TransactionCreateFromFrontend object
+    :param token: dict from the DI system with data from jwt token.
+    :return: Transaction domain object
+    """
     iids = [record[0] for record in transaction_create.item_id_quantity]
     item_details = get_items_details(SelectedItems(item_id_list=iids), token)
     shop_id = token.get("shop_id")

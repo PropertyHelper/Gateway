@@ -3,6 +3,9 @@ from pydantic import HttpUrl
 
 
 class Settings(BaseSettings):
+    """
+    Capture settings from the environment.
+    """
     secret: str
     user_endpoint: HttpUrl
     face_recognition_endpoint: HttpUrl

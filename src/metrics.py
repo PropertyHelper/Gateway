@@ -1,5 +1,6 @@
 from prometheus_client import Counter
 
+# create custom metrics for live face recognition system monitoring
 total_face_recognitions = Counter(
     "face_recognitions",
     "Total number of face recognition requests"

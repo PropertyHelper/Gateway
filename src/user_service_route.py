@@ -4,15 +4,27 @@ from fastapi import APIRouter, HTTPException, Depends
 import requests
 
 from src.models import UserLogInRequest, User, LogInSuccessful, UserCreate, TransactionResponse, FrontendUserBalances, \
-    UserBalances, FrontendTransactionResponse, FrontendTransaction, Transaction, ShopNames
+    UserBalances, FrontendTransactionResponse, FrontendTransaction, ShopNames
 from src.settings import settings
 from src.security import issue_token, AccessLevel, ValidateHeader
 
 router = APIRouter(prefix="/user")
-user_access_level = AccessLevel("User_Level")
+user_access_level = AccessLevel("User_Level")  # access level for users
 
 @router.post("/login")
 def login_user(login_request: UserLogInRequest) -> LogInSuccessful:
+    """
+    Authorise the user and issue JWT.
+
+    Flow:
+        1. Check whether login is allowed on the user data service side
+        2. Issue JWT or throw 403 exception
+    :param login_request: credentials
+    :return: LogInSuccessful object
+
+    :raise HTTPException with 550 code if user service times out
+    :raise HTTPException with 403 code if the credentials are wrong
+    """
     try:
         response = requests.post(settings.user_endpoint.unicode_string() + "/user/login",
                                  json=login_request.model_dump(),
@@ -29,6 +41,13 @@ def login_user(login_request: UserLogInRequest) -> LogInSuccessful:
 
 @router.get("/")
 def get_user(token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> User:
+    """
+    Get user details by a token.
+
+    :param token: dict, received from DI system with data from jwt token.
+    :return: user domain model
+    :raise HTTPException with 550 code if user server times out
+    """
     uid = token["entity_id"]
     try:
         response = requests.get(settings.user_endpoint.unicode_string() + f"/user/{uid}", timeout=10)
@@ -41,6 +60,19 @@ def get_user(token: dict = Depends(ValidateHeader(user_access_level, settings.se
 def get_user_transactions(offset: int = 0,
                            limit: int = 100,
                           token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> FrontendTransactionResponse:
+    """
+    Get user most recent transactions.
+
+    :param offset: skip int transactions
+    :param limit: show up to this number of transactions
+    :param token: dict, received from DI system with data from jwt token.
+    :return: FrontendTransactionResponse object
+    :raise HTTPException with code 550 if services time out
+
+    Flow:
+        1. Get recent transactions
+        2. Saturate the response by adding shop names from the shop data service
+    """
     uid = token["entity_id"]
     try:
         response = requests.get(settings.transaction_endpoint.unicode_string() + f"/userdata/transactions/{uid}",
@@ -64,6 +96,16 @@ def get_user_transactions(offset: int = 0,
 
 @router.get("/balance")
 def get_user_balance(token: dict = Depends(ValidateHeader(user_access_level, settings.secret))) -> FrontendUserBalances:
+    """
+    Get user balances for shop
+    :param token: dict, received from DI system with data from jwt token.
+    :return: FrontendUserBalances object
+    :raise HTTPException if any service times out
+
+    Flow:
+        1. Get user balances
+        2. Saturate the response by adding shop names from the shop data service
+    """
     uid = token["entity_id"]
     try:
         response = requests.get(settings.transaction_endpoint.unicode_string() + f"/userdata/{uid}",
@@ -86,7 +128,15 @@ def get_user_balance(token: dict = Depends(ValidateHeader(user_access_level, set
     return front_user_balance
 
 @router.post("/")
-def create_user(user_create: UserCreate):
+def create_user(user_create: UserCreate) -> LogInSuccessful:
+    """
+    Create a new user.
+
+    :param user_create: user creation model
+    :return: LogInSuccessful object
+    :raise HTTPException with code 550 if the service is unavailable
+    :raise HTTPException with code 400 if parameters for user creation were invalid
+    """
     try:
         response = requests.post(settings.user_endpoint.unicode_string() + "/user",
                                  json=json.loads(user_create.model_dump_json()),

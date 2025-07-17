@@ -13,6 +13,11 @@ from src.shop_router import router as shop_router
 
 
 def build_app() -> FastAPI:
+    """
+    Application factory that creates and configures FastAPI instance.
+
+    :return Configured FastAPI application instance
+    """
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         """
@@ -27,10 +32,12 @@ def build_app() -> FastAPI:
     app.include_router(face_recognition_router, tags=["Cashier"])
     app.include_router(cashier_router, tags=["Cashier"])
     app.include_router(shop_router, tags=["Shop"])
+    # allow for all origins, unless we deploy to defined ports and addresses
     app.add_middleware(CORSMiddleware,
                        allow_origins=["*"],
                        allow_methods=["*"],
                        allow_headers=["*"],
                        )
+    # monitor the gateway
     Instrumentator(excluded_handlers=["/metrics"]).instrument(app).expose(app)
     return app
